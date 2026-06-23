@@ -353,8 +353,7 @@
                             <span><i class="fa-solid fa-chart-pie mr-1"></i> 旅程個人帳目總計摘要</span>
                             <span class="text-gray-400 text-[10px]">台幣/日幣分開統計</span>
                         </h4>
-                        <div id="individual-summary-list" class="space-y-2 text-xs text-gray-600 bg-white p-3 rounded-xl border border-slate-100">
-                            </div>
+                        <div id="individual-summary-list" class="space-y-2 text-xs text-gray-600 bg-white p-3 rounded-xl border border-slate-100"></div>
                     </div>
 
                     <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 space-y-2">
@@ -404,16 +403,17 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
     <script>
-        // ======= 【 請在這裡替換成您的 Firebase API 金鑰資訊 】 =======
+        // ======= 【 Firebase 設定資訊：已手動補上 databaseURL 】 =======
         const firebaseConfig = {
-  apiKey: "AIzaSyC9MsInq9w76Lwm869Uz-CySLzArs1Oyp8",
-  authDomain: "japan0719-2545c.firebaseapp.com",
-  projectId: "japan0719-2545c",
-  storageBucket: "japan0719-2545c.firebasestorage.app",
-  messagingSenderId: "189656560411",
-  appId: "1:189656560411:web:050870698f182dad8d19be",
-  measurementId: "G-XP88CKFVQB"
-};
+            apiKey: "AIzaSyC9MsInq9w76Lwm869Uz-CySLzArs1Oyp8",
+            authDomain: "japan0719-2545c.firebaseapp.com",
+            databaseURL: "https://japan0719-2545c-default-rtdb.firebaseio.com", 
+            projectId: "japan0719-2545c",
+            storageBucket: "japan0719-2545c.firebasestorage.app",
+            messagingSenderId: "189656560411",
+            appId: "1:189656560411:web:050870698f182dad8d19be",
+            measurementId: "G-XP88CKFVQB"
+        };
         // ==========================================================
         
         // 初始化 Firebase 與資料庫
@@ -490,26 +490,31 @@
 
         function renderMembersManagement() {
             const container = document.getElementById('members-list');
-            container.innerHTML = members.map(m => `
-                <div class="flex items-center space-x-1 bg-white border border-slate-200 px-2 py-1 rounded-lg text-xs">
-                    <span class="font-medium text-gray-800">${m.name}</span>
-                    <button onclick="deleteMember(${m.id})" class="text-gray-400 hover:text-red-500 transition-colors ml-1">
-                        <i class="fa-regular fa-circle-xmark"></i>
-                    </button>
-                </div>
-            `).join('');
+            if(container) {
+                container.innerHTML = members.map(m => `
+                    <div class="flex items-center space-x-1 bg-white border border-slate-200 px-2 py-1 rounded-lg text-xs">
+                        <span class="font-medium text-gray-800">${m.name}</span>
+                        <button onclick="deleteMember(${m.id})" class="text-gray-400 hover:text-red-500 transition-colors ml-1">
+                            <i class="fa-regular fa-circle-xmark"></i>
+                        </button>
+                    </div>
+                `).join('');
+            }
 
             const participantContainer = document.getElementById('split-participants');
-            participantContainer.innerHTML = members.map(m => `
-                <label class="flex items-center space-x-1 bg-white px-2 py-1 rounded border border-slate-200 cursor-pointer text-xs">
-                    <input type="checkbox" name="split-member-checkbox" value="${m.id}" checked class="rounded text-morandi-blue focus:ring-0">
-                    <span class="text-gray-700">${m.name}</span>
-                </label>
-            `).join('');
+            if(participantContainer) {
+                participantContainer.innerHTML = members.map(m => `
+                    <label class="flex items-center space-x-1 bg-white px-2 py-1 rounded border border-slate-200 cursor-pointer text-xs">
+                        <input type="checkbox" name="split-member-checkbox" value="${m.id}" checked class="rounded text-morandi-blue focus:ring-0">
+                        <span class="text-gray-700">${m.name}</span>
+                    </label>
+                `).join('');
+            }
         }
 
         function updatePayerDropdown() {
             const dropdown = document.getElementById('main-payer');
+            if(!dropdown) return;
             const currentSelected = dropdown.value;
             dropdown.innerHTML = members.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
             if (members.some(m => m.id == currentSelected)) {
@@ -554,150 +559,195 @@
                 .catch(err => alert('同步至雲端失敗：' + err.message));
         }
 
-        // 自雲端移除單筆
-        function deleteRecord(fbKey) {
-            if(!fbKey) return;
-            database.ref('expenses/' + fbKey).remove()
-                .catch(err => alert('刪除失敗：' + err.message));
-        }
-
-        // 清空雲端所有資料
-        function clearAllExpenses() {
-            if(confirm('確定要刪除整趟行程記下的所有消費明細嗎？（雲端資料庫將同步清空）')) {
-                database.ref('expenses').remove()
-                    .then(() => {
-                        document.getElementById('result-section').classList.add('hidden');
-                    });
-            }
-        }
-
+        // 渲染流水帳畫面
         function renderRecordLedger() {
-            const container = document.getElementById('expense-records-ledger');
-            document.getElementById('record-count').innerText = expenseRecords.length;
+            const ledger = document.getElementById('expense-records-ledger');
+            const countSpan = document.getElementById('record-count');
+            
+            if(countSpan) countSpan.innerText = expenseRecords.length;
+            if(!ledger) return;
 
-            if (expenseRecords.length === 0) {
-                container.innerHTML = `<p class="text-center text-gray-400 py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">目前尚無消費紀錄，請在上方新增第一筆費用！</p>`;
+            if(expenseRecords.length === 0) {
+                ledger.innerHTML = `<p class="text-center text-gray-400 py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">目前尚無消費紀錄，請在上方新增第一筆費用！</p>`;
                 return;
             }
 
-            expenseRecords.sort((a, b) => new Date(a.date) - new Date(b.date));
+            // 依日期由新到舊排序
+            const sortedRecords = [...expenseRecords].sort((a,b) => new Date(b.date) - new Date(a.date));
 
-            container.innerHTML = expenseRecords.map(r => {
-                const sign = r.currency === 'TWD' ? 'NT$' : '¥';
-                const pNames = r.participantIds.map(pId => {
-                    const m = members.find(mem => mem.id === pId);
-                    return m ? m.name : '';
-                }).filter(n => n !== '').join('、');
+            ledger.innerHTML = sortedRecords.map(r => {
+                const unit = r.currency === 'TWD' ? 'NT$' : '¥';
+                const badgeColor = r.currency === 'TWD' ? 'bg-blue-50 text-morandi-blue border-blue-100' : 'bg-orange-50 text-warm-orange border-orange-100';
+                
+                // 找出分攤者名字
+                const names = r.participantIds.map(pid => {
+                    const found = members.find(m => m.id === pid);
+                    return found ? found.name : "已離職旅伴";
+                }).join(', ');
 
                 return `
-                    <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl space-y-1 relative group">
-                        <div class="flex justify-between items-start">
-                            <span class="text-[10px] bg-morandi-blue text-white px-1.5 py-0.2 rounded font-mono">${r.date}</span>
-                            <button onclick="deleteRecord('${r.fbKey}')" class="text-gray-400 hover:text-red-500 transition-colors">
-                                <i class="fa-solid fa-xmark text-sm"></i>
+                    <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 flex justify-between items-start space-x-2">
+                        <div class="space-y-1 flex-1">
+                            <div class="flex items-center space-x-1.5">
+                                <span class="text-[10px] bg-white border px-1.5 py-0.5 rounded-md text-gray-400 font-mono">${r.date}</span>
+                                <span class="text-[10px] border px-1.5 py-0.5 rounded-md font-mono font-bold ${badgeColor}">${r.currency}</span>
+                                <h5 class="font-bold text-gray-800">${r.note}</h5>
+                            </div>
+                            <p class="text-[11px] text-gray-500">墊款：<span class="text-gray-700 font-medium">${r.payerName}</span> | 分攤：<span class="text-gray-600">${names}</span></p>
+                        </div>
+                        <div class="text-right flex flex-col items-end space-y-1">
+                            <span class="font-bold text-gray-800 text-sm font-mono">${unit} ${r.amount.toLocaleString()}</span>
+                            <button onclick="deleteRecord('${r.fbKey}')" class="text-gray-400 hover:text-red-500 transition-colors text-xs">
+                                <i class="fa-solid fa-trash-can"></i>
                             </button>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="font-bold text-gray-800 text-sm">${r.note}</span>
-                            <span class="font-bold text-morandi-blue">${sign} ${Math.round(r.amount)}</span>
-                        </div>
-                        <div class="flex justify-between text-[11px] text-gray-500 pt-0.5 border-t border-gray-200/50">
-                            <span>墊付人: <strong class="text-gray-700">${r.payerName}</strong></span>
-                            <span class="text-right max-w-[180px] truncate" title="${pNames}">分攤: ${pNames}</span>
                         </div>
                     </div>
                 `;
             }).join('');
         }
 
-        function calculateGrandFinal() {
-            if (expenseRecords.length === 0) return alert('行程流水帳目前空空如也，請先記帳幾筆花費再行結算喔！');
+        // 自雲端移除單筆
+        function deleteRecord(fbKey) {
+            if(!fbKey) return;
+            if(confirm('確定要刪除這筆消費紀錄嗎？')) {
+                database.ref('expenses/' + fbKey).remove()
+                    .catch(err => alert('刪除失敗：' + err.message));
+            }
+        }
 
+        // 清空所有雲端記帳資料
+        function clearAllExpenses() {
+            if(expenseRecords.length === 0) return alert('目前本來就沒有任何紀錄喔！');
+            if(confirm('⚠️ 警告：這將會清空雲端資料庫上「所有人」的消費流水帳，確定要全部重置清除嗎？')) {
+                database.ref('expenses').remove()
+                    .then(() => {
+                        document.getElementById('result-section').classList.add('hidden');
+                        alert('已成功清空雲端帳本！');
+                    })
+                    .catch(err => alert('清空失敗：' + err.message));
+            }
+        }
+
+        // 雙幣別一鍵大結算演算法
+        function calculateGrandFinal() {
+            if (expenseRecords.length === 0) return alert('尚未有任何消費紀錄，無法進行結算！');
+            
+            // 建立個人總計結構
             let summary = {};
             members.forEach(m => {
                 summary[m.id] = {
                     name: m.name,
-                    twdPaid: 0, twdCost: 0,
-                    jpyPaid: 0, jpyCost: 0
+                    twdPaid: 0, twdOwe: 0,
+                    jpyPaid: 0, jpyOwe: 0
                 };
             });
 
+            // 1. 統計每個人墊付了多少、該分攤多少
             expenseRecords.forEach(r => {
-                const perShare = r.amount / r.participantIds.length;
-                if (r.currency === 'TWD') {
-                    summary[r.payerId].twdPaid += r.amount;
-                    r.participantIds.forEach(pId => {
-                        if (summary[pId]) summary[pId].twdCost += perShare;
-                    });
-                } else if (r.currency === 'JPY') {
-                    summary[r.payerId].jpyPaid += r.amount;
-                    r.participantIds.forEach(pId => {
-                        if (summary[pId]) summary[pId].jpyCost += perShare;
-                    });
+                const amt = r.amount;
+                const payerId = r.payerId;
+                const participants = r.participantIds;
+                
+                // 處理可能已經不在名單內的墊款人例外
+                if (summary[payerId]) {
+                    if (r.currency === 'TWD') summary[payerId].twdPaid += amt;
+                    else summary[payerId].jpyPaid += amt;
                 }
+
+                // 計算每人平攤金額
+                const share = amt / participants.length;
+                participants.forEach(pid => {
+                    if (summary[pid]) {
+                        if (r.currency === 'TWD') summary[pid].twdOwe += share;
+                        else summary[pid].jpyOwe += share;
+                    }
+                });
             });
 
+            // 2. 渲染個人摘要卡片
             const summaryContainer = document.getElementById('individual-summary-list');
-            summaryContainer.innerHTML = Object.values(summary).map(s => {
-                return `
-                    <div class="border-b border-gray-100 pb-2 last:border-0 last:pb-0 space-y-0.5">
-                        <p class="font-bold text-gray-800 text-sm">${s.name}</p>
-                        <div class="grid grid-cols-2 gap-2 text-[11px] text-gray-500">
-                            <div>台幣 墊: $${Math.round(s.twdPaid)} | 應分: $${Math.round(s.twdCost)}</div>
-                            <div>日幣 墊: ¥${Math.round(s.jpyPaid)} | 應分: ¥${Math.round(s.jpyCost)}</div>
-                        </div>
+            summaryContainer.innerHTML = Object.values(summary).map(p => `
+                <div class="py-1.5 border-b border-gray-100 last:border-none flex justify-between items-center">
+                    <span class="font-bold text-gray-700">${p.name}</span>
+                    <div class="text-right text-[11px] space-y-0.5">
+                        <p class="text-blue-600">台幣：墊 ${Math.round(p.twdPaid)} / 應分攤 ${Math.round(p.twdOwe)}</p>
+                        <p class="text-orange-600">日幣：墊 ${Math.round(p.jpyPaid)} / 應分攤 ${Math.round(p.jpyOwe)}</p>
                     </div>
-                `;
-            }).join('');
+                </div>
+            `).join('');
 
-            let twdBalances = Object.values(summary).map(s => ({ name: s.name, balance: s.twdPaid - s.twdCost }));
-            let jpyBalances = Object.values(summary).map(s => ({ name: s.name, balance: s.jpyPaid - s.jpyCost }));
+            // 3. 計算轉帳方案
+            const twdSchemes = splitLogic(Object.values(summary), 'TWD');
+            const jpySchemes = splitLogic(Object.values(summary), 'JPY');
 
-            renderTransferSolutions(twdBalances, 'twd-debt-settlement', 'NT$');
-            renderTransferSolutions(jpyBalances, 'jpy-debt-settlement', '¥');
-
-            document.getElementById('result-section').classList.remove('hidden');
-            document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        function renderTransferSolutions(balances, elementId, sign) {
-            let creditors = balances.filter(b => b.balance > 0).sort((a,b) => b.balance - a.balance);
-            let debtors = balances.filter(b => b.balance < 0).sort((a,b) => a.balance - b.balance);
-
-            let statements = [];
-            let i = 0, j = 0;
-
-            while (i < creditors.length && j < debtors.length) {
-                let creditor = creditors[i];
-                let debtor = debtors[j];
-                let amount = Math.min(creditor.balance, -debtor.balance);
-
-                if (Math.round(amount) > 0) {
-                    statements.push({ from: debtor.name, to: creditor.name, amount: Math.round(amount) });
-                }
-
-                creditor.balance -= amount;
-                debtor.balance += amount;
-
-                if (Math.abs(creditor.balance) < 0.1) i++;
-                if (Math.abs(debtor.balance) < 0.1) j++;
-            }
-
-            const container = document.getElementById(elementId);
-            if (statements.length === 0) {
-                container.innerHTML = `<p class="text-[11px] text-gray-500 bg-white/70 p-2 rounded-xl text-center"><i class="fa-solid fa-circle-check text-green-500 mr-1"></i> 此幣別帳目已打平，不需要轉帳！</p>`;
+            // 4. 顯示轉帳方案到畫面上
+            const twdContainer = document.getElementById('twd-debt-settlement');
+            if (twdSchemes.length === 0) {
+                twdContainer.innerHTML = `<p class="text-xs text-gray-400 font-medium py-1">🎉 太棒了！台幣帳目剛好完全扯平，不需要轉帳！</p>`;
             } else {
-                container.innerHTML = statements.map(d => `
-                    <div class="flex items-center justify-between bg-white p-2.5 rounded-xl shadow-sm border border-gray-100">
-                        <div class="flex items-center space-x-1.5 text-xs">
-                            <span class="font-bold text-gray-800">${d.from}</span>
-                            <span class="text-gray-400 text-[10px]">轉給</span>
-                            <span class="font-bold text-morandi-blue">${d.to}</span>
-                        </div>
-                        <span class="text-xs font-black text-warm-orange">${sign} ${d.amount}</span>
+                twdContainer.innerHTML = twdSchemes.map(s => `
+                    <div class="flex items-center justify-between text-xs bg-white px-3 py-2 rounded-xl border border-blue-100 shadow-sm">
+                        <span>🧔 <strong class="text-gray-800">${s.from}</strong> 應轉帳給 <strong class="text-blue-600">${s.to}</strong></span>
+                        <span class="font-mono font-bold text-blue-600 text-sm">NT$ ${Math.round(s.amount).toLocaleString()}</span>
                     </div>
                 `).join('');
             }
+
+            const jpyContainer = document.getElementById('jpy-debt-settlement');
+            if (jpySchemes.length === 0) {
+                jpyContainer.innerHTML = `<p class="text-xs text-gray-400 font-medium py-1">🎉 太棒了！日幣帳目剛好完全扯平，不需要轉帳！</p>`;
+            } else {
+                jpyContainer.innerHTML = jpySchemes.map(s => `
+                    <div class="flex items-center justify-between text-xs bg-white px-3 py-2 rounded-xl border border-orange-100 shadow-sm">
+                        <span>🧔 <strong class="text-gray-800">${s.from}</strong> 應轉帳給 <strong class="text-warm-orange">${s.to}</strong></span>
+                        <span class="font-mono font-bold text-warm-orange text-sm">¥ ${Math.round(s.amount).toLocaleString()}</span>
+                    </div>
+                `).join('');
+            }
+
+            // 展開結果區塊並平滑滾動
+            const resSection = document.getElementById('result-section');
+            resSection.classList.remove('hidden');
+            resSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 貪婪法結算核心邏輯：計算誰該給誰多少錢
+        function splitLogic(peopleArray, currencyType) {
+            // 計算每個人與平均值的淨資產差額 (應收為正，應付為負)
+            let balances = peopleArray.map(p => {
+                const net = currencyType === 'TWD' ? (p.twdPaid - p.twdOwe) : (p.jpyPaid - p.jpyOwe);
+                return { name: p.name, balance: net };
+            });
+
+            let debtors = balances.filter(b => b.balance < -0.1).sort((a,b) => a.balance - b.balance); // 欠錢的人（負越多排越前面）
+            let creditors = balances.filter(b => b.balance > 0.1).sort((a,b) => b.balance - a.balance); // 應收錢的人（正越多排越前面）
+
+            let schemes = [];
+            let i = 0, j = 0;
+
+            while (i < debtors.length && j < creditors.length) {
+                let debtor = debtors[i];
+                let creditor = creditors[j];
+                
+                let oweAmount = -debtor.balance;
+                let receiveAmount = creditor.balance;
+                let settle = Math.min(oweAmount, receiveAmount);
+
+                if (settle > 0.5) {
+                    schemes.push({
+                        from: debtor.name,
+                        to: creditor.name,
+                        amount: settle
+                    });
+                }
+
+                debtor.balance += settle;
+                creditor.balance -= settle;
+
+                if (Math.abs(debtor.balance) < 0.1) i++;
+                if (Math.abs(creditor.balance) < 0.1) j++;
+            }
+            return schemes;
         }
     </script>
 </body>
